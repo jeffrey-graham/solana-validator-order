@@ -1,0 +1,30 @@
+services:
+  probe:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+      - SOLANA_KEYPAIR_PATH=${SOLANA_KEYPAIR_PATH:-}
+      - SOLANA_PRIVATE_KEY=${SOLANA_PRIVATE_KEY:-}
+    volumes:
+      - ./data:/app/data
+      # Optional read-only volume mount for external Solana keypair when running with --live:
+      # - ${HOST_KEYPAIR_DIR:-/tmp}:/keys:ro
+    command: ["--max-spend-sol", "0.02", "--blocks-per-validator", "2"]
+
+  verify:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["python3", "src/verify_claims.py"]
+    environment:
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+    volumes:
+      - ./data:/app/data
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]
