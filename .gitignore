@@ -1,0 +1,27 @@
+# Never allow keypairs, wallet files, or secret env files in the repository
+*.key
+*keypair*.json
+*wallet*.json
+id.json
+.env
+.env.*
+keys/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node / TypeScript artifacts
+node_modules/
+
+# Rust / Solana SBF build outputs
+target/
+artifacts/
+*.so

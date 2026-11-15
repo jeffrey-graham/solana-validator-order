@@ -40,7 +40,7 @@ def rpc_get_block(slot: int, retries: int = 4) -> Dict[str, Any]:
             )
             with urllib.request.urlopen(req, timeout=20) as resp:
                 return json.loads(resp.read().decode("utf-8")).get("result") or {}
-        except Exception as e:
+        except Exception:
             if attempt + 1 == retries:
                 raise
             time.sleep(1.5 * (attempt + 1))

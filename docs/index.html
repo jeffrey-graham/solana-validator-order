@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>solana-validator-order | Per-Writable-Lock Priority Fee SDK &amp; Banking Stage Terminal</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --panel: #101726;
+      --panel-alt: #141e30;
+      --border: #23324d;
+      --text: #e6edf7;
+      --muted: #93a4c1;
+      --accent: #14f195;
+      --accent-dim: rgba(20, 241, 149, 0.14);
+      --purple: #9945ff;
+      --purple-dim: rgba(153, 69, 255, 0.16);
+      --amber: #f59e0b;
+      --danger: #ef4444;
+      --mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 15% 0%, rgba(153, 69, 255, 0.12), transparent 36%),
+                  radial-gradient(circle at 85% 0%, rgba(20, 241, 149, 0.08), transparent 36%),
+                  var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-alt);
+      color: var(--muted);
+    }
+    .badge.green { color: var(--accent); border-color: rgba(20, 241, 149, 0.35); background: var(--accent-dim); }
+    .badge.purple { color: #c49bff; border-color: rgba(153, 69, 255, 0.45); background: var(--purple-dim); }
+    h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.02em; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 14px; max-width: 780px; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      cursor: pointer;
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel-alt);
+      color: var(--text);
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+    .btn.primary {
+      background: linear-gradient(135deg, #14f195 0%, #0bbf74 100%);
+      color: #06130d;
+      border-color: transparent;
+    }
+    .btn.primary:hover { filter: brightness(1.07); color: #06130d; }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      cursor: pointer;
+      padding: 9px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .grid-2 { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+    @media (max-width: 960px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    .card h2 { margin: 0 0 6px; font-size: 17px; }
+    .card p.hint { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+    input, select {
+      width: 100%;
+      background: #0b111d;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      margin-bottom: 12px;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .chip {
+      cursor: pointer;
+      font-size: 11.5px;
+      font-family: var(--mono);
+      padding: 4px 9px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #0d1422;
+      color: var(--muted);
+    }
+    .chip:hover, .chip.active { border-color: var(--accent); color: var(--accent); }
+    .tier-box {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .tier-box.recommended { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(20, 241, 149, 0.2); }
+    .tier-name { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 700; }
+    .tier-price { font-family: var(--mono); font-size: 18px; font-weight: 700; margin: 4px 0; color: var(--text); }
+    .tier-sub { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+    pre {
+      background: #070b12;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #d6e3f8;
+      margin: 8px 0 0;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    th, td {
+      text-align: left;
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(35, 50, 77, 0.7);
+      font-family: var(--mono);
+    }
+    th { color: var(--muted); font-family: var(--sans); font-weight: 600; font-size: 12px; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .pill-ok {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid rgba(20, 241, 149, 0.35);
+    }
+    .pill-warn {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(245, 158, 11, 0.14);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px dashed rgba(35, 50, 77, 0.6);
+      font-size: 12.5px;
+    }
+    .stat-row span:last-child { font-family: var(--mono); font-weight: 600; }
+    .q-bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+    .q-bar-wrap { background: #0b111d; border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; }
+    .q-bar-track { height: 74px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 6px; }
+    .q-bar-fill { width: 32px; background: linear-gradient(180deg, var(--accent), var(--purple)); border-radius: 4px 4px 0 0; min-height: 4px; }
+    .mono { font-family: var(--mono); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="badge-row">
+          <span class="badge green">v0.2.0 Dual Python + TypeScript SDK</span>
+          <span class="badge purple">Post-Alpenglow (v1 + v0 + Legacy)</span>
+          <span class="badge">Live Mainnet-Beta &amp; Devnet JSON-RPC</span>
+        </div>
+        <h1>solana-validator-order</h1>
+        <p class="subtitle">
+          Per-writable-account priority-fee percentile estimator, Banking Stage scheduler waterfall analyzer across 8 validator client forks, and on-chain Devnet/Mainnet Program ID verifier.
+        </p>
+      </div>
+      <div class="nav-links">
+        <a class="btn" href="https://github.com/jeffrey-graham/solana-validator-order" target="_blank" rel="noopener">GitHub Repo &amp; SDK</a>
+        <a class="btn" href="https://explorer.solana.com/address/CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do?cluster=devnet" target="_blank" rel="noopener">Registry Program ID</a>
+      </div>
+    </header>
+
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="tab-fees">1. Live Per-Writable-Lock Fee Estimator</button>
+      <button class="tab-btn" data-tab="tab-verify">2. On-Chain Program Verifier &amp; Devnet SVM Simulator</button>
+      <button class="tab-btn" data-tab="tab-empirical">3. Post-Alpenglow Validator Scheduler Explorer (16 Mainnet Blocks)</button>
+    </div>
+
+    <!-- TAB 1: LIVE FEE ESTIMATOR -->
+    <section id="tab-fees" class="tab-pane active">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Live Writable-Account Contention Query</h2>
+          <p class="hint">
+            Queries live <code>getRecentPrioritizationFees</code> scoped to the exact writable state locks your transaction touches so you price for the real prio-graph conflict queue instead of overpaying slot averages.
+          </p>
+          <label>Quick-Select Hot Mainnet Writable Account Presets</label>
+          <div class="presets" id="preset-chips">
+            <button class="chip active" data-accts="675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8,JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4">Raydium v4 + Jupiter v6</button>
+            <button class="chip" data-accts="58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2">Raydium SOL/USDC Pool</button>
+            <button class="chip" data-accts="whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc">Orca Whirlpool</button>
+            <button class="chip" data-accts="LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo">Meteora DLMM</button>
+            <button class="chip" data-accts="6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P">Pump.fun Bonding</button>
+          </div>
+
+          <label for="writable-input">Writable Account Pubkeys (comma-separated, up to 128)</label>
+          <input id="writable-input" type="text" value="675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8, JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4" />
+
+          <div class="grid-2" style="gap:12px;">
+            <div>
+              <label for="cu-limit-input">Requested Compute Unit Limit (<code>1..1,400,000</code>)</label>
+              <input id="cu-limit-input" type="number" min="1" max="1400000" value="180000" />
+            </div>
+            <div>
+              <label for="rpc-url-input">Solana RPC Endpoint (CORS-enabled)</label>
+              <input id="rpc-url-input" type="text" value="https://solana-rpc.publicnode.com" />
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button class="btn primary" id="btn-fetch-fees">Query Live 150-Slot Percentiles</button>
+            <span id="fee-status" class="mono" style="font-size:12px; color:var(--muted);">Ready</span>
+          </div>
+
+          <div style="margin-top:16px;">
+            <label>150-Slot Priority Fee Sparkline (&mu;-lamports / CU across recent slots)</label>
+            <svg id="fee-sparkline" viewBox="0 0 600 96" style="width:100%; height:96px; background:#070b12; border:1px solid var(--border); border-radius:8px;"></svg>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Distribution Telemetry &amp; SDK Output</h2>
+          <p class="hint">Blends all-slot floor with non-zero contention spikes and a 20-slot EMA burst detector.</p>
+          <div id="telemetry-rows">
+            <div class="stat-row"><span>Slots Sampled</span><span id="st-slots">—</span></div>
+            <div class="stat-row"><span>Contended Non-Zero Slots</span><span id="st-nonzero">—</span></div>
+            <div class="stat-row"><span>Detected Regime</span><span id="st-regime">—</span></div>
+            <div class="stat-row"><span>20-Slot EMA / Surge Ratio</span><span id="st-ema">—</span></div>
+            <div class="stat-row"><span>Non-Zero P50 / P75 / P90</span><span id="st-pct-nz">—</span></div>
+          </div>
+
+          <label style="margin-top:14px;">Ready-to-Send SDK &amp; Binary ComputeBudget Instructions (Fast Tier)</label>
+          <pre id="sdk-snippet">// Click "Query Live 150-Slot Percentiles" or wait for auto-load...</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tiered Priority-Fee Recommendations</h2>
+        <div class="grid-4" id="tiers-grid"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: ON-CHAIN PROGRAM VERIFIER & SIMULATOR -->
+    <section id="tab-verify" class="tab-pane">
+      <div class="grid-2">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
+            <h2 style="margin:0;">Live Mainnet-Beta &amp; Devnet Program ID Verifier</h2>
+            <button class="btn primary" id="btn-verify-programs">Re-Verify On-Chain via RPC</button>
+          </div>
+          <p class="hint">
+            Calls live <code>getAccountInfo</code> against <code>solana-rpc.publicnode.com</code> (Mainnet-Beta) and <code>api.devnet.solana.com</code> (Devnet) to verify executable status, loader owner, and rent lamports—zero cached claims.
+          </p>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cluster</th>
+                  <th>Program</th>
+                  <th>Program ID (Explorer)</th>
+                  <th>Live RPC Status</th>
+                </tr>
+              </thead>
+              <tbody id="program-verify-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Live Devnet SVM Transaction Simulator</h2>
+          <p class="hint">
+            Constructs a real binary Solana wire transaction (<code>ComputeBudget::SetComputeUnitLimit</code> + <code>SetComputeUnitPrice</code> + <code>SPL Memo v2</code>) and executes <code>simulateTransaction</code> live on Solana Devnet.
+          </p>
+          <div class="grid-2" style="gap:10px;">
+            <div>
+              <label for="sim-cu-limit">SetComputeUnitLimit</label>
+              <input id="sim-cu-limit" type="number" value="25000" min="1000" max="1400000" />
+            </div>
+            <div>
+              <label for="sim-cu-price">SetComputeUnitPrice (&mu;Lamports/CU)</label>
+              <input id="sim-cu-price" type="number" value="25000" min="0" />
+            </div>
+          </div>
+          <label for="sim-memo">On-Chain Probe Memo Tag</label>
+          <input id="sim-memo" type="text" value="svo:v0.2.0:shared-lock-probe" />
+          <button class="btn primary" id="btn-run-sim">Execute Live Devnet simulateTransaction</button>
+
+          <label style="margin-top:14px;">Live Solana Devnet Runtime Response &amp; Execution Logs</label>
+          <pre id="sim-output">// Click "Execute Live Devnet simulateTransaction" to run on api.devnet.solana.com...</pre>
+
+          <label style="margin-top:12px;">ValidatorOrderRegistry (<code>CmNC6vKh...Cm6Do</code>) <code>RecordProbePulse</code> Wire Payload</label>
+          <pre id="registry-hex-preview"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: EMPIRICAL POST-ALPENGLOW EXPLORER -->
+    <section id="tab-empirical" class="tab-pane">
+      <div class="card">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
+          <div>
+            <h2>Post-Alpenglow Mainnet Block Measurements (8 Validator Client Families, 16 Verifiable Blocks)</h2>
+            <p class="hint" style="margin-bottom:0;">
+              Click any Mainnet block row below to inspect its intra-slot Q1&ndash;Q4 priority-fee profile and open the exact slot or transaction directly on Solana Explorer.
+            </p>
+          </div>
+          <div style="min-width:220px;">
+            <select id="client-filter" style="margin-bottom:0;">
+              <option value="ALL">All 8 Validator Client Forks (16 Blocks)</option>
+              <option value="AgaveBam">AgaveBam 4.3.2 (Jito-BAM)</option>
+              <option value="JitoLabs">JitoLabs 4.3.2</option>
+              <option value="HarmonicAgave">HarmonicAgave 4.3.2</option>
+              <option value="HarmonicFiredancer">HarmonicFiredancer 26.10.4</option>
+              <option value="Firedancer">Firedancer 26.10.4 (Jump)</option>
+              <option value="Rakurai">Rakurai 4.3.2</option>
+              <option value="FireBAM">FireBAM 26.10.4</option>
+              <option value="Agave">Agave 4.3.2 (Vanilla Non-Jito)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:16px;">
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mainnet Slot</th>
+                  <th>Client Fork</th>
+                  <th>Scheduler Txs</th>
+                  <th>Global &rho;</th>
+                  <th>Contention &rho;</th>
+                  <th>Proof Tx</th>
+                </tr>
+              </thead>
+              <tbody id="empirical-tbody"></tbody>
+            </table>
+          </div>
+          <div>
+            <div id="block-detail-header" class="mono" style="font-size:13px; font-weight:700; margin-bottom:6px;"></div>
+            <div id="block-detail-meta" style="font-size:12.5px; color:var(--muted); margin-bottom:10px;"></div>
+            <label>Intra-Slot Quartile Median Priority Profile (Q1 = Top 25% of Block &rarr; Q4 = Tail 25%)</label>
+            <div class="q-bars" id="quartile-bars"></div>
+            <pre id="block-detail-json" style="margin-top:12px;"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    const B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    const B58_MAP = new Map([...B58_ALPHABET].map((c, i) => [c, BigInt(i)]));
+
+    function b58decode(str) {
+      let num = 0n;
+      for (const ch of str.trim()) {
+        const v = B58_MAP.get(ch);
+        if (v === undefined) throw new Error(`Invalid base58 char: ${ch}`);
+        num = num * 58n + v;
+      }
+      const bytes = [];
+      while (num > 0n) { bytes.push(Number(num & 0xffn)); num >>= 8n; }
+      bytes.reverse();
+      let pad = 0;
+      while (pad < str.length && str[pad] === "1") pad++;
+      const out = new Uint8Array(pad + bytes.length);
+      out.set(bytes, pad);
+      return out;
+    }
+
+    function toHex(u8) {
+      return Array.from(u8, (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    function encodeSetCuLimit(units) {
+      const out = new Uint8Array(5);
+      out[0] = 0x02;
+      new DataView(out.buffer).setUint32(1, Number(units), true);
+      return out;
+    }
+
+    function encodeSetCuPrice(microLamports) {
+      const out = new Uint8Array(9);
+      out[0] = 0x03;
+      new DataView(out.buffer).setBigUint64(1, BigInt(Math.max(0, Math.round(Number(microLamports)))), true);
+      return out;
+    }
+
+    function encodeRecordProbePulse(burstId, sendSeq, cuPrice) {
+      const out = new Uint8Array(19);
+      const dv = new DataView(out.buffer);
+      out[0] = 0x01;
+      dv.setBigUint64(1, BigInt(burstId), true);
+      dv.setUint16(9, Number(sendSeq), true);
+      dv.setBigUint64(11, BigInt(Math.max(0, Math.round(Number(cuPrice)))), true);
+      return out;
+    }
+
+    function calcPct(sorted, pct) {
+      if (!sorted.length) return 0;
+      const pos = (pct / 100) * (sorted.length - 1);
+      const lo = Math.floor(pos), hi = Math.ceil(pos);
+      return lo === hi ? sorted[lo] : Math.round(sorted[lo] * (1 - (pos - lo)) + sorted[hi] * (pos - lo));
+    }
+
+    async function rpcCall(url, method, params) {
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} from ${url}`);
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+      return data.result;
+    }
+
+    // Tab switching
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".tab-pane").forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(btn.dataset.tab).classList.add("active");
+      });
+    });
+
+    // Preset chips
+    document.querySelectorAll("#preset-chips .chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        document.querySelectorAll("#preset-chips .chip").forEach((c) => c.classList.remove("active"));
+        chip.classList.add("active");
+        document.getElementById("writable-input").value = chip.dataset.accts.split(",").join(", ");
+        fetchLiveFees();
+      });
+    });
+
+    function renderSparkline(fees) {
+      const svg = document.getElementById("fee-sparkline");
+      if (!fees.length) {
+        svg.innerHTML = `<text x="300" y="52" text-anchor="middle" fill="#93a4c1" font-size="12" font-family="monospace">No slot samples returned</text>`;
+        return;
+      }
+      const maxVal = Math.max(1, ...fees);
+      const w = 600, h = 96, pad = 8;
+      const barW = Math.max(1.5, (w - pad * 2) / fees.length - 1);
+      const bars = fees.map((f, i) => {
+        const bh = f === 0 ? 3 : Math.max(6, Math.round((Math.log10(f + 1) / Math.log10(maxVal + 1)) * (h - 20)));
+        const x = (pad + i * ((w - pad * 2) / fees.length)).toFixed(1);
+        const y = h - 8 - bh;
+        const fill = f > 0 ? "#14f195" : "#24324b";
+        return `<rect x="${x}" y="${y}" width="${barW.toFixed(1)}" height="${bh}" fill="${fill}" rx="1"/>`;
+      }).join("");
+      svg.innerHTML = bars + `<text x="10" y="14" fill="#93a4c1" font-size="10" font-family="monospace">Log-scaled micro-lamports/CU (max=${maxVal.toLocaleString()})</text>`;
+    }
+
+    async function fetchLiveFees() {
+      const statusEl = document.getElementById("fee-status");
+      const rpcUrl = document.getElementById("rpc-url-input").value.trim();
+      const cuLimit = Math.min(1400000, Math.max(1, Number(document.getElementById("cu-limit-input").value) || 180000));
+      const accts = document.getElementById("writable-input").value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      statusEl.textContent = "Querying live Solana RPC...";
+      try {
+        accts.forEach((a) => {
+          if (b58decode(a).length !== 32) throw new Error(`Invalid 32-byte pubkey: ${a}`);
+        });
+        const rows = (await rpcCall(rpcUrl, "getRecentPrioritizationFees", [accts])) || [];
+        rows.sort((a, b) => a.slot - b.slot);
+        const fees = rows.map((r) => Math.max(0, Math.trunc(Number(r.prioritizationFee || 0))));
+        const sortedAll = [...fees].sort((a, b) => a - b);
+        const nonzero = sortedAll.filter((f) => f > 0);
+
+        const pAll = {
+          p25: calcPct(sortedAll, 25),
+          p50: calcPct(sortedAll, 50),
+          p75: calcPct(sortedAll, 75),
+          p95: calcPct(sortedAll, 95),
+        };
+        const pNz = {
+          p25: calcPct(nonzero, 25),
+          p50: calcPct(nonzero, 50),
+          p75: calcPct(nonzero, 75),
+          p90: calcPct(nonzero, 90),
+        };
+
+        const tail = fees.slice(-20);
+        let ema = 0;
+        tail.forEach((v, i) => { ema = i === 0 ? v : 0.25 * v + 0.75 * ema; });
+        const emaInt = Math.round(ema);
+        const baseMed = Math.max(1, pAll.p50 || pNz.p50 || 1);
+        const surge = (ema / baseMed).toFixed(2);
+        const nzRatio = fees.length ? nonzero.length / fees.length : 0;
+        const regime = (nzRatio >= 0.5 || pAll.p75 >= 50000)
+          ? "hot_writable_lock_contention"
+          : (nzRatio >= 0.1 || pNz.p75 >= 10000) ? "intermittent_burst_contention" : "uncontested_low_floor";
+
+        const econ = Math.max(500, pAll.p25);
+        const std = Math.max(1000, pAll.p50, pNz.p25);
+        const fast = Math.max(std, pAll.p75, pNz.p50, emaInt);
+        const turbo = Math.max(fast, pAll.p95, pNz.p90);
+
+        document.getElementById("st-slots").textContent = rows.length
+          ? `${rows.length} (${rows[0].slot}..${rows[rows.length - 1].slot})`
+          : "0";
+        document.getElementById("st-nonzero").textContent = `${nonzero.length} / ${fees.length} (${(nzRatio * 100).toFixed(1)}%)`;
+        document.getElementById("st-regime").textContent = regime;
+        document.getElementById("st-ema").textContent = `${emaInt.toLocaleString()} uLamports/CU (${surge}x)`;
+        document.getElementById("st-pct-nz").textContent = `${pNz.p50.toLocaleString()} / ${pNz.p75.toLocaleString()} / ${pNz.p90.toLocaleString()}`;
+
+        renderSparkline(fees);
+
+        const tiers = [
+          ["Economy", econ, false],
+          ["Standard", std, false],
+          ["Fast (Recommended)", fast, true],
+          ["Turbo (Burst Top)", turbo, false],
+        ];
+        const grid = document.getElementById("tiers-grid");
+        grid.innerHTML = tiers.map(([label, price, rec]) => {
+          const prioLamports = Math.ceil((cuLimit * price) / 1e6);
+          const totalLamports = 5000 + prioLamports;
+          return `<div class="tier-box ${rec ? "recommended" : ""}">
+            <div class="tier-name">${label}</div>
+            <div class="tier-price">${price.toLocaleString()} <span style="font-size:12px;color:var(--muted);">&mu;L/CU</span></div>
+            <div class="tier-sub">Total: ${totalLamports.toLocaleString()} lamports (${(totalLamports / 1e9).toFixed(7)} SOL)</div>
+          </div>`;
+        }).join("");
+
+        const limHex = toHex(encodeSetCuLimit(cuLimit));
+        const prioHex = toHex(encodeSetCuPrice(fast));
+        document.getElementById("sdk-snippet").textContent =
+`// TypeScript / ESM (@jeffrey-graham/solana-validator-order)
+import { SolanaPriorityFeeClient, encodeSetComputeUnitLimit, encodeSetComputeUnitPrice } from "@jeffrey-graham/solana-validator-order";
+const client = new SolanaPriorityFeeClient("${rpcUrl}");
+const est = await client.estimateWritableLockFees(${JSON.stringify(accts)}, { cuLimit: ${cuLimit} });
+// Recommended Fast Tier: ${fast.toLocaleString()} micro-lamports/CU
+// ComputeBudget::SetComputeUnitLimit(${cuLimit}) -> 0x${limHex}
+// ComputeBudget::SetComputeUnitPrice(${fast})    -> 0x${prioHex}`;
+
+        statusEl.textContent = `Live @ Slot ${rows.length ? rows[rows.length - 1].slot : "—"}`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    // Tab 2: Live Program ID Verification + SVM Simulation
+    const PROGRAMS = [
+      { name: "ValidatorOrderRegistry (Custom SBF)", id: "CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do", cluster: "devnet", rpc: "https://api.devnet.solana.com" },
+      { name: "ComputeBudget Native Program", id: "ComputeBudget111111111111111111111111111111", cluster: "devnet", rpc: "https://api.devnet.solana.com" },
+      { name: "ComputeBudget Native Program", id: "ComputeBudget111111111111111111111111111111", cluster: "mainnet-beta", rpc: "https://solana-rpc.publicnode.com" },
+      { name: "SPL Memo v2 Program", id: "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr", cluster: "devnet", rpc: "https://api.devnet.solana.com" },
+      { name: "Jupiter Aggregator v6", id: "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4", cluster: "mainnet-beta", rpc: "https://solana-rpc.publicnode.com" },
+      { name: "Raydium Liquidity Pool V4", id: "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8", cluster: "mainnet-beta", rpc: "https://solana-rpc.publicnode.com" },
+    ];
+
+    async function verifyAllPrograms() {
+      const tbody = document.getElementById("program-verify-tbody");
+      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted);">Querying Mainnet-Beta &amp; Devnet getAccountInfo...</td></tr>`;
+      const rowsHtml = await Promise.all(PROGRAMS.map(async (p) => {
+        const explorer = `https://explorer.solana.com/address/${p.id}${p.cluster === "devnet" ? "?cluster=devnet" : ""}`;
+        try {
+          const res = await rpcCall(p.rpc, "getAccountInfo", [p.id, { encoding: "base64" }]);
+          const val = res?.value;
+          const badge = val?.executable
+            ? `<span class="pill-ok">EXECUTABLE (${(val.lamports / 1e9).toFixed(4)} SOL)</span>`
+            : `<span class="pill-warn">STAGED (Awaiting Devnet Faucet Top-Up)</span>`;
+          return `<tr>
+            <td>${p.cluster}</td>
+            <td style="font-family:var(--sans);">${p.name}</td>
+            <td><a href="${explorer}" target="_blank" rel="noopener">${p.id.slice(0, 10)}...${p.id.slice(-8)}</a></td>
+            <td>${badge}</td>
+          </tr>`;
+        } catch (e) {
+          return `<tr><td>${p.cluster}</td><td>${p.name}</td><td>${p.id.slice(0, 12)}...</td><td><span class="pill-warn">${e.message}</span></td></tr>`;
+        }
+      }));
+      tbody.innerHTML = rowsHtml.join("");
+    }
+
+    function updateRegistryPreview() {
+      const price = Number(document.getElementById("sim-cu-price").value) || 25000;
+      const pulseHex = toHex(encodeRecordProbePulse(42, 5, price));
+      document.getElementById("registry-hex-preview").textContent =
+        `Program ID : CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do\n` +
+        `Instruction: RecordProbePulse(burst_id=42, send_seq=5, cu_price=${price})\n` +
+        `Wire Bytes : 0x${pulseHex} (19 bytes, zero-heap SBF layout)`;
+    }
+
+    async function runDevnetSimulation() {
+      const outEl = document.getElementById("sim-output");
+      outEl.textContent = "Executing live simulateTransaction on https://api.devnet.solana.com ...";
+      try {
+        const cuLimit = Math.min(1400000, Math.max(1000, Number(document.getElementById("sim-cu-limit").value) || 25000));
+        const cuPrice = Math.max(0, Number(document.getElementById("sim-cu-price").value) || 25000);
+        const memo = (document.getElementById("sim-memo").value || "svo:v0.2.0").slice(0, 80);
+
+        const payer = b58decode("96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5");
+        const cbProg = b58decode("ComputeBudget111111111111111111111111111111");
+        const memoProg = b58decode("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+
+        const ix1 = encodeSetCuLimit(cuLimit);
+        const ix2 = encodeSetCuPrice(cuPrice);
+        const ix3 = new TextEncoder().encode(memo);
+
+        const parts = [
+          new Uint8Array([1, ...new Array(64).fill(0)]),
+          new Uint8Array([1, 0, 2, 3]),
+          payer, cbProg, memoProg,
+          new Uint8Array(32),
+          new Uint8Array([3]),
+          new Uint8Array([1, 0, ix1.length]), ix1,
+          new Uint8Array([1, 0, ix2.length]), ix2,
+          new Uint8Array([2, 1, 0, ix3.length]), ix3,
+        ];
+        const totalLen = parts.reduce((acc, p) => acc + p.length, 0);
+        const wire = new Uint8Array(totalLen);
+        let off = 0;
+        for (const p of parts) { wire.set(p, off); off += p.length; }
+        const wireB64 = btoa(String.fromCharCode(...wire));
+
+        const res = await rpcCall("https://api.devnet.solana.com", "simulateTransaction", [
+          wireB64,
+          { encoding: "base64", sigVerify: false, replaceRecentBlockhash: true },
+        ]);
+        const v = res.value;
+        outEl.textContent = JSON.stringify({
+          cluster: "solana-devnet (api.devnet.solana.com)",
+          succeeded: v.err === null,
+          err: v.err,
+          feeLamports: v.fee,
+          unitsConsumed: v.unitsConsumed,
+          replacementBlockhash: v.replacementBlockhash?.blockhash,
+          logs: v.logs,
+        }, null, 2);
+        updateRegistryPreview();
+      } catch (err) {
+        outEl.textContent = `Simulation error: ${err.message}`;
+      }
+    }
+
+    // Tab 3: Empirical Mainnet Dataset (16 Verifiable Post-Alpenglow Blocks)
+    const EMPIRICAL_BLOCKS = [
+      {"slot":461352851,"client":"AgaveBam","version":"4.3.2","name":"binance staking","identity":"DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm21hy","stakeSol":12588035,"nonVoteTxs":438,"jitoTipTxs":14,"schedulerTxs":424,"globalRho":-0.1361,"globalMono":0.5501,"contRho":0.129,"contMono":0.4452,"varQueues":59,"rule":"Sub-Slot Sawtooth Batching (Q1 & Q3 Priority Peaks)","quartiles":[75000.0,62502.5,90480.92,35102.05],"sampleSig":"5fLUZQmVGZqssYRG5hYFi2EfXmFW6JWHXE949h3JCPF1zqaMM6yNnBHqao5qV5YLNqFAefCNRhUAzfTrwPobjis4"},
+      {"slot":461352850,"client":"AgaveBam","version":"4.3.2","name":"binance staking","identity":"DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm21hy","stakeSol":12588035,"nonVoteTxs":354,"jitoTipTxs":11,"schedulerTxs":343,"globalRho":-0.0813,"globalMono":0.5314,"contRho":-0.0057,"contMono":0.4969,"varQueues":47,"rule":"Sub-Slot Sawtooth Batching (Q1 & Q3 Priority Peaks)","quartiles":[62894.74,53631.58,62894.74,48951.05],"sampleSig":"477x7KMicvdRCeAHKC9y9gDMatoLvafd4HiEDkPXWtBoHyz1supvQBJxVvhjSZfSdbXUXwMhLNhnPMYWScvhFyKC"},
+      {"slot":461352891,"client":"JitoLabs","version":"4.3.2","name":"Ledger by Figment","identity":"C8Bey3LKVJHVqN6xPTeW8WJfUgFQAeGNBpT4Rp99JP1k","stakeSol":9216837,"nonVoteTxs":736,"jitoTipTxs":46,"schedulerTxs":690,"globalRho":-0.115,"globalMono":0.5417,"contRho":-0.0819,"contMono":0.5371,"varQueues":107,"rule":"Multi-Worker Banking Stage + Bundle Window Interleaving","quartiles":[80040.0,29915.13,75000.0,34333.33],"sampleSig":"ZCtHj9T1HR4biXstv9wgRSBhkm4hvNThyPTDQk3z1brWhWe5JxamrUs8foNBAMVmVkoyfMazFvceLJCvBEs4Z4Z"},
+      {"slot":461352890,"client":"JitoLabs","version":"4.3.2","name":"Ledger by Figment","identity":"C8Bey3LKVJHVqN6xPTeW8WJfUgFQAeGNBpT4Rp99JP1k","stakeSol":9216837,"nonVoteTxs":469,"jitoTipTxs":38,"schedulerTxs":431,"globalRho":0.04,"globalMono":0.4879,"contRho":-0.0076,"contMono":0.4971,"varQueues":52,"rule":"Arrival-Time Streaming + Late Slot Contention","quartiles":[36928.65,50500.0,32961.17,62500.0],"sampleSig":"JegYEHpafdnSjxojUvxBMXN4B5pBSCovbcnjSpmhZFo3PdjEMeEWPqHsQwkhFG7XSBYGPr2igMsyBtkandtPFUP"},
+      {"slot":461352783,"client":"HarmonicAgave","version":"4.3.2","name":"Figment","identity":"Fd7btgySsrjuo25CJCj7oE7VPMyezDhnx7pZkj2v69Nk","stakeSol":17099113,"nonVoteTxs":458,"jitoTipTxs":10,"schedulerTxs":448,"globalRho":-0.1707,"globalMono":0.5622,"contRho":-0.0949,"contMono":0.5467,"varQueues":64,"rule":"Monotonic Quartile Decay (Q1 -> Q4 Priority Gradient)","quartiles":[91035.04,75000.0,62894.74,33273.2],"sampleSig":"4BrDswpM3pDW2RoGkCq9TZjsWAroXbJEMvjC47udwuqHLXyvJUo6pQ6w1AhJ2wssT2GwG3x6UQ5dxBJoYPWFFwhn"},
+      {"slot":461352782,"client":"HarmonicAgave","version":"4.3.2","name":"Figment","identity":"Fd7btgySsrjuo25CJCj7oE7VPMyezDhnx7pZkj2v69Nk","stakeSol":17099113,"nonVoteTxs":468,"jitoTipTxs":13,"schedulerTxs":455,"globalRho":-0.1614,"globalMono":0.5597,"contRho":-0.0419,"contMono":0.5066,"varQueues":67,"rule":"Bimodal Sub-Slot Auction Windows (Q1 & Q3)","quartiles":[81660.59,49777.31,81324.37,34333.33],"sampleSig":"u4zbAaXU8vqbDGGB92Wbe3zrYeaXxu5TpqVFA1tqpGfzb4Yb2Jf7oVPwtMbqouZThYjzGzbQoDkd5kfn27C3J62"},
+      {"slot":461352835,"client":"HarmonicFiredancer","version":"26.10.4","name":"Staking Facilities","identity":"Awes4Tr6TX8JDzEhCZY2QVNimT6iD1zWHzf1vNyGvpLM","stakeSol":7006653,"nonVoteTxs":451,"jitoTipTxs":13,"schedulerTxs":438,"globalRho":-0.0512,"globalMono":0.5207,"contRho":0.0563,"contMono":0.4653,"varQueues":58,"rule":"Multi-Tile Parallel Execution Stream","quartiles":[34859.12,50000.0,35074.29,29780.61],"sampleSig":"4dvsryKXjy9Z2sEE6TaELRyyvvzwXHj9YvjViLRFeno5GCLCLNQAYPfWhrP5kAh1eGTwnRvnjrejnVN53LGSo8Ab"},
+      {"slot":461352834,"client":"HarmonicFiredancer","version":"26.10.4","name":"Staking Facilities","identity":"Awes4Tr6TX8JDzEhCZY2QVNimT6iD1zWHzf1vNyGvpLM","stakeSol":7006653,"nonVoteTxs":436,"jitoTipTxs":11,"schedulerTxs":425,"globalRho":-0.0885,"globalMono":0.5343,"contRho":0.0156,"contMono":0.4969,"varQueues":52,"rule":"Bimodal Sub-Slot Release (Q1 & Q3)","quartiles":[79724.02,34333.33,79882.27,30663.75],"sampleSig":"2ZUvQfRZo6uwGEAY9HeHNrptcM5qpNXjKYQJSRrTrSHLyKQQXEBXvaENLiHvt9hx5DrXDi4BfkKykSAVLVnPVc8g"},
+      {"slot":461352831,"client":"Firedancer","version":"26.10.4","name":"Galaxy","identity":"9eGrDohdNTAo61DRHyfMuqKWXqYnA3i254Wiszxe8FoY","stakeSol":7038249,"nonVoteTxs":714,"jitoTipTxs":41,"schedulerTxs":673,"globalRho":-0.0441,"globalMono":0.5169,"contRho":-0.0383,"contMono":0.5349,"varQueues":96,"rule":"High-Throughput Bank-Tile Parallel Packing","quartiles":[71648.44,66966.55,94895.61,69083.25],"sampleSig":"4e17f1A6Gssn5ukJH7oq26n46PideKji1RT8KGF1i3gx6WiyBugX5CgTTnkfmaUQsHL6C5kNP4KUvqxZq3Y83SgD"},
+      {"slot":461352830,"client":"Firedancer","version":"26.10.4","name":"Galaxy","identity":"9eGrDohdNTAo61DRHyfMuqKWXqYnA3i254Wiszxe8FoY","stakeSol":7038249,"nonVoteTxs":629,"jitoTipTxs":17,"schedulerTxs":612,"globalRho":-0.0046,"globalMono":0.5064,"contRho":-0.0926,"contMono":0.5475,"varQueues":78,"rule":"Serialized Contention Priority (-0.0926) Inside Parallel Tiles","quartiles":[54199.33,42307.69,69127.07,54723.0],"sampleSig":"2kAWjyY6kzP4KjieUxogCZeXTrPCxhNDXqxA62craYweWxXVs7WH3nGEdUXVPupNuE2pbRJrYTdJBdYnJnXa1Ymc"},
+      {"slot":461351959,"client":"Rakurai","version":"4.3.2","name":"Anagram Staking","identity":"ana2y2YvQ3ZPMwm6qhnN3nJoUSiT3qx5Pvetkq9xcfY","stakeSol":2264905,"nonVoteTxs":524,"jitoTipTxs":9,"schedulerTxs":515,"globalRho":-0.2139,"globalMono":0.5793,"contRho":-0.2086,"contMono":0.6214,"varQueues":72,"rule":"Strongest Priority-per-CU Ordering (62.1% Pairwise Monotonic)","quartiles":[138805.53,41675.0,45951.83,43479.99],"sampleSig":"4whqGdQDeT9DAnGbMXR3vEBnEnnYwi6Au4Z5hUx8iHPqfsx1kCZ8Bk2JtpTm24CbQkEs1PqGkHQf8dhtHAEYtXt1"},
+      {"slot":461351958,"client":"Rakurai","version":"4.3.2","name":"Anagram Staking","identity":"ana2y2YvQ3ZPMwm6qhnN3nJoUSiT3qx5Pvetkq9xcfY","stakeSol":2264905,"nonVoteTxs":442,"jitoTipTxs":2,"schedulerTxs":440,"globalRho":0.0151,"globalMono":0.4963,"contRho":-0.1709,"contMono":0.5722,"varQueues":75,"rule":"Strong Contention-Queue Serialization (contRho = -0.1709)","quartiles":[69910.8,42058.33,51000.0,78966.75],"sampleSig":"4SyPyXiCaPDgheixoVB8sapuUyxoXPGfqW5mW3AmxCV4Y26iTxdATiZbWwdYWriJHjf6qU8sd7HhF2nxSnKfnaP8"},
+      {"slot":461352443,"client":"FireBAM","version":"26.10.4","name":"FireBAM-9jxgos","identity":"9jxgosAfHgHzwnxsHw4RAZYaLVokMbnYtmiZBreynGFP","stakeSol":4477330,"nonVoteTxs":272,"jitoTipTxs":13,"schedulerTxs":259,"globalRho":-0.1515,"globalMono":0.5569,"contRho":0.2571,"contMono":0.3886,"varQueues":20,"rule":"Steep Q1 Top-of-Block Auction Spike (1.0M uL/CU)","quartiles":[1000000.0,183336.67,183336.67,66770.0],"sampleSig":"4eMAjquNBNAvdHHf4eYqZE13ysgLMPouCaAgFQpCNtEPziYvcEhntge4xSpQz74rMm1cSCZyhsJHk2woKBAZW8we"},
+      {"slot":461352442,"client":"FireBAM","version":"26.10.4","name":"FireBAM-9jxgos","identity":"9jxgosAfHgHzwnxsHw4RAZYaLVokMbnYtmiZBreynGFP","stakeSol":4477330,"nonVoteTxs":289,"jitoTipTxs":19,"schedulerTxs":270,"globalRho":-0.0249,"globalMono":0.5129,"contRho":-0.0333,"contMono":0.5374,"varQueues":28,"rule":"Bimodal BAM Sub-Slot Release","quartiles":[79411.76,60277.1,86867.73,62894.74],"sampleSig":"4owUthtJK1Uj9LDn31MNU4ZLnAuLXSTd8XFPEMPaVGS7a5XULB5rQxY1AodX3vxupTPXYk5S9mAT1DD7vhueJzPJ"},
+      {"slot":461352179,"client":"Agave","version":"4.3.2","name":"Agave-7QQGNm","identity":"7QQGNm3ptwinipDCyaCF7jY5katgmFUu1ieP2f7nwLpE","stakeSol":1875002,"nonVoteTxs":310,"jitoTipTxs":0,"schedulerTxs":310,"globalRho":-0.087,"globalMono":0.53,"contRho":-0.0281,"contMono":0.522,"varQueues":14,"rule":"Pure Native Prio-Graph Scheduler (0 Jito Tips)","quartiles":[90923.15,101000.0,52510.0,50500.0],"sampleSig":"3BNeyzjBXUc7D6gWfQNwJ2WjwtgiA4Wq32Kw54SvwM8tHixCJ7NX6RavcTzW14SV7B33JsyZX12BbkuAawMKZgJL"},
+      {"slot":461352178,"client":"Agave","version":"4.3.2","name":"Agave-7QQGNm","identity":"7QQGNm3ptwinipDCyaCF7jY5katgmFUu1ieP2f7nwLpE","stakeSol":1875002,"nonVoteTxs":316,"jitoTipTxs":0,"schedulerTxs":316,"globalRho":0.1968,"globalMono":0.4316,"contRho":-0.1519,"contMono":0.5669,"varQueues":21,"rule":"Global Noise (+0.197) vs Strong Contention Ordering (-0.152)","quartiles":[52778.95,83031.62,66666.67,6766666.67],"sampleSig":"4GMzeHUHuRpVW4GCgJ9zgHvQR1LXuETnPU5XQn8xvrccT7nLKmyDtgb9pbA69eTZ8Z9FYf1o7gcG6yrJHQCPDSMM"}
+    ];
+
+    function selectBlock(b) {
+      document.getElementById("block-detail-header").innerHTML =
+        `Slot <a href="https://explorer.solana.com/block/${b.slot}" target="_blank" rel="noopener">${b.slot}</a> &mdash; ${b.client} ${b.version} (${b.name})`;
+      document.getElementById("block-detail-meta").textContent =
+        `Validator: ${b.identity} | Stake: ${b.stakeSol.toLocaleString()} SOL | Regime: ${b.rule}`;
+      const maxQ = Math.max(1, ...b.quartiles);
+      document.getElementById("quartile-bars").innerHTML = b.quartiles.map((val, idx) => {
+        const h = Math.max(6, Math.round((Math.log10(val + 1) / Math.log10(maxQ + 1)) * 70));
+        return `<div class="q-bar-wrap">
+          <div class="q-bar-track"><div class="q-bar-fill" style="height:${h}px"></div></div>
+          <div style="font-size:11px;font-weight:700;">Q${idx + 1}</div>
+          <div class="mono" style="font-size:10.5px;color:var(--muted);">${Math.round(val).toLocaleString()}</div>
+        </div>`;
+      }).join("");
+      document.getElementById("block-detail-json").textContent = JSON.stringify(b, null, 2);
+    }
+
+    function renderEmpiricalTable() {
+      const filter = document.getElementById("client-filter").value;
+      const filtered = filter === "ALL" ? EMPIRICAL_BLOCKS : EMPIRICAL_BLOCKS.filter((b) => b.client === filter);
+      const tbody = document.getElementById("empirical-tbody");
+      tbody.innerHTML = filtered.map((b, i) => `<tr data-idx="${i}" style="cursor:pointer;">
+        <td><a href="https://explorer.solana.com/block/${b.slot}" target="_blank" rel="noopener">${b.slot}</a></td>
+        <td>${b.client} <span style="color:var(--muted);">${b.version}</span></td>
+        <td>${b.schedulerTxs}</td>
+        <td style="color:${b.globalRho < 0 ? "var(--accent)" : "var(--amber)"};">${b.globalRho.toFixed(4)}</td>
+        <td style="color:${b.contRho < 0 ? "var(--accent)" : "var(--muted)"};">${b.contRho.toFixed(4)}</td>
+        <td><a href="https://explorer.solana.com/tx/${b.sampleSig}" target="_blank" rel="noopener">${b.sampleSig.slice(0, 8)}...</a></td>
+      </tr>`).join("");
+      tbody.querySelectorAll("tr").forEach((tr) => {
+        tr.addEventListener("click", () => selectBlock(filtered[Number(tr.dataset.idx)]));
+      });
+      if (filtered.length) selectBlock(filtered[0]);
+    }
+
+    document.getElementById("btn-fetch-fees").addEventListener("click", fetchLiveFees);
+    document.getElementById("btn-verify-programs").addEventListener("click", verifyAllPrograms);
+    document.getElementById("btn-run-sim").addEventListener("click", runDevnetSimulation);
+    document.getElementById("sim-cu-price").addEventListener("input", updateRegistryPreview);
+    document.getElementById("client-filter").addEventListener("change", renderEmpiricalTable);
+
+    updateRegistryPreview();
+    renderEmpiricalTable();
+    fetchLiveFees();
+    verifyAllPrograms();
+  </script>
+</body>
+</html>

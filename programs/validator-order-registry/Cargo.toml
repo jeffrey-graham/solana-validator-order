@@ -1,0 +1,16 @@
+[package]
+name = "validator-order-registry"
+version = "0.2.0"
+edition = "2021"
+description = "On-chain Solana SBF probe-pulse & per-writable-lock priority-fee checkpoint registry for solana-validator-order."
+license = "MIT"
+authors = ["Jeffrey Graham <jeffrey.graham3@gmail.com>"]
+
+[features]
+no-entrypoint = []
+
+[dependencies]
+solana-program = "2.3.0"
+
+[lib]
+crate-type = ["cdylib", "lib"]

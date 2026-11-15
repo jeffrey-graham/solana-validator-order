@@ -1,0 +1,35 @@
+{
+  "name": "@jeffrey-graham/solana-validator-order",
+  "version": "0.2.0",
+  "description": "Zero-dependency TypeScript/ESM SDK for Solana per-writable-account priority-fee percentiles, ComputeBudget binary instruction encoding, Banking Stage ordering statistics, and ValidatorOrderRegistry codecs.",
+  "license": "MIT",
+  "author": "Jeffrey Graham <jeffrey.graham3@gmail.com>",
+  "type": "module",
+  "main": "./src/index.mjs",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.mjs"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/sdk.test.mjs"
+  },
+  "keywords": [
+    "solana",
+    "priority-fees",
+    "compute-budget",
+    "validator",
+    "banking-stage",
+    "firedancer",
+    "agave",
+    "sdk"
+  ]
+}

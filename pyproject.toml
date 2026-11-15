@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "solana-validator-order"
+version = "0.2.0"
+description = "Empirical Solana Banking Stage transaction-ordering analyzer, per-writable-account priority-fee percentile SDK, and Devnet/Mainnet program verifier."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Jeffrey Graham", email = "jeffrey.graham3@gmail.com" }
+]
+keywords = [
+  "solana",
+  "priority-fees",
+  "compute-budget",
+  "validator",
+  "banking-stage",
+  "firedancer",
+  "agave",
+  "jito",
+  "microstructure",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://jeffrey-graham.github.io/solana-validator-order/"
+Repository = "https://github.com/jeffrey-graham/solana-validator-order"
+Documentation = "https://github.com/jeffrey-graham/solana-validator-order#readme"
+
+[project.scripts]
+solana-order-fee = "solana_validator_order.fee_estimator:main"
+solana-order-verify = "solana_validator_order.program_verifier:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["solana_validator_order*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E402", "E501"]
+

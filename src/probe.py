@@ -15,18 +15,16 @@ Features:
 """
 
 import argparse
-import base64
 import hashlib
 import json
 import os
 import struct
-import sys
 import time
 import urllib.request
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from analyzer import analyze_block, pairwise_monotonicity, spearman_rho
+from analyzer import analyze_block
 from block_parser import B58_ALPHABET, b58decode, parse_block_transactions
 
 DEFAULT_RPC_URL = os.environ.get("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
