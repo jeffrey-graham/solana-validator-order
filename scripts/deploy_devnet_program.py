@@ -215,12 +215,36 @@ def deploy_sbf_binary(
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Verify or deploy ValidatorOrderRegistry on Solana Devnet.")
     parser.add_argument("--verify", action="store_true", help="Verify Mainnet & Devnet Program IDs + SVM simulation.")
-    parser.add_argument("--deploy-so", type=str, default="", help="Path to compiled validator_order_registry.so.")
+    parser.add_argument(
+        "--deploy-so",
+        "--so-path",
+        dest="deploy_so",
+        type=str,
+        default="",
+        help="Path to compiled validator_order_registry.so.",
+    )
+    parser.add_argument(
+        "--payer-keypair",
+        type=str,
+        default="~/.config/solana/devnet-deployer.json",
+        help="Path to Devnet payer keypair (strictly outside repository).",
+    )
+    parser.add_argument(
+        "--program-keypair",
+        type=str,
+        default="~/.config/solana/validator-order-program.json",
+        help="Path to deterministic program keypair (strictly outside repository).",
+    )
     parser.add_argument("--rpc-url", type=str, default=DEFAULT_DEVNET_RPC)
     args = parser.parse_args(argv)
 
     if args.deploy_so:
-        res = deploy_sbf_binary(args.deploy_so, rpc_url=args.rpc_url)
+        res = deploy_sbf_binary(
+            args.deploy_so,
+            rpc_url=args.rpc_url,
+            deployer_keypair_path=args.payer_keypair,
+            program_keypair_path=args.program_keypair,
+        )
         print(json.dumps(res, indent=2))
         return 0
 
