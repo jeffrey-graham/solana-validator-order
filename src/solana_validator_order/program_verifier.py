@@ -29,13 +29,17 @@ from .fee_estimator import (
     encode_set_compute_unit_limit,
     encode_set_compute_unit_price,
 )
-from .registry_client import DEVNET_DEPLOYER_PUBKEY, VALIDATOR_ORDER_REGISTRY_PROGRAM_ID
+from .registry_client import (
+    DEVNET_DEPLOYER_PUBKEY,
+    DEVNET_PROBE_STATE_ACCOUNT,
+    VALIDATOR_ORDER_REGISTRY_PROGRAM_ID,
+    encode_record_probe_pulse,
+)
 
 MEMO_PROGRAM_V2_ID = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
 JUPITER_V6_PROGRAM_ID = "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
 RAYDIUM_AMM_V4_PROGRAM_ID = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
-# Public System-owned account with Devnet SOL balance used solely for read-only sigVerify=false CU simulation
-DEVNET_SIMULATION_PAYER = "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5"
+DEVNET_SIMULATION_PAYER = DEVNET_DEPLOYER_PUBKEY
 
 CANONICAL_PROGRAMS: List[Dict[str, str]] = [
     {
@@ -81,33 +85,43 @@ def _encode_compact_u16(val: int) -> bytes:
 
 def build_unsigned_simulation_probe_tx_base64(
     *,
-    cu_limit: int = 25_000,
+    cu_limit: int = 35_000,
     cu_price_micro_lamports: int = 25_000,
     memo_text: str = "svo:v0.2.0:devnet-verify",
     simulation_payer: str = DEVNET_SIMULATION_PAYER,
+    probe_state_account: str = DEVNET_PROBE_STATE_ACCOUNT,
 ) -> str:
     """
     Builds a valid Legacy Solana wire transaction (with 1 dummy 64-byte signature)
+    invoking `ComputeBudget` + `ValidatorOrderRegistry::RecordProbePulse` + `SPL Memo v2`
     for zero-cost RPC `simulateTransaction` (`sigVerify: false, replaceRecentBlockhash: true`).
     """
     payer_bytes = b58decode(simulation_payer)
+    ps_bytes = b58decode(probe_state_account)
     cb_bytes = b58decode(COMPUTE_BUDGET_PROGRAM_ID)
+    reg_bytes = b58decode(VALIDATOR_ORDER_REGISTRY_PROGRAM_ID)
     memo_bytes = b58decode(MEMO_PROGRAM_V2_ID)
 
     ix_limit = encode_set_compute_unit_limit(cu_limit)
     ix_price = encode_set_compute_unit_price(cu_price_micro_lamports)
+    ix_pulse = encode_record_probe_pulse(
+        burst_id=1,
+        send_seq=0,
+        cu_price_micro_lamports=cu_price_micro_lamports,
+    )
     ix_memo = memo_text.encode("utf-8")
 
     sig_section = _encode_compact_u16(1) + (b"\x00" * 64)
-    header = bytes([1, 0, 2])  # 1 signer writable, 0 ro signed, 2 ro unsigned programs
-    keys = _encode_compact_u16(3) + payer_bytes + cb_bytes + memo_bytes
+    header = bytes([1, 0, 3])  # 1 signer writable, 0 ro signed, 1 writable unsigned (ps), 3 ro unsigned programs
+    keys = _encode_compact_u16(5) + payer_bytes + ps_bytes + cb_bytes + reg_bytes + memo_bytes
     recent_blockhash = b"\x00" * 32
 
     ixs = (
-        _encode_compact_u16(3)
-        + bytes([1, 0]) + _encode_compact_u16(len(ix_limit)) + ix_limit
-        + bytes([1, 0]) + _encode_compact_u16(len(ix_price)) + ix_price
-        + bytes([2, 1, 0]) + _encode_compact_u16(len(ix_memo)) + ix_memo
+        _encode_compact_u16(4)
+        + bytes([2, 0]) + _encode_compact_u16(len(ix_limit)) + ix_limit
+        + bytes([2, 0]) + _encode_compact_u16(len(ix_price)) + ix_price
+        + bytes([3, 2, 0, 1]) + _encode_compact_u16(len(ix_pulse)) + ix_pulse
+        + bytes([4, 1, 0]) + _encode_compact_u16(len(ix_memo)) + ix_memo
     )
     return base64.b64encode(sig_section + header + keys + recent_blockhash + ixs).decode("ascii")
 
@@ -115,7 +129,7 @@ def build_unsigned_simulation_probe_tx_base64(
 def simulate_compute_budget_probe(
     rpc_url: str = DEFAULT_DEVNET_RPC,
     *,
-    cu_limit: int = 25_000,
+    cu_limit: int = 35_000,
     cu_price_micro_lamports: int = 25_000,
     memo_text: str = "svo:v0.2.0:devnet-verify",
     rpc_transport: Optional[Callable[[str, Dict[str, Any]], Dict[str, Any]]] = None,

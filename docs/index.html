@@ -321,17 +321,19 @@
               <tbody id="program-verify-tbody"></tbody>
             </table>
           </div>
+          <label style="margin-top:14px;">Live On-Chain Devnet Registry State (<code>SVOR</code> &amp; <code>SVFC</code> Accounts)</label>
+          <pre id="live-onchain-state">// Querying live Devnet ProbeState (99b3Tz...gMuf) &amp; FeeCheckpointState (vjEa18...RaHe)...</pre>
         </div>
 
         <div class="card">
           <h2>Live Devnet SVM Transaction Simulator</h2>
           <p class="hint">
-            Constructs a real binary Solana wire transaction (<code>ComputeBudget::SetComputeUnitLimit</code> + <code>SetComputeUnitPrice</code> + <code>SPL Memo v2</code>) and executes <code>simulateTransaction</code> live on Solana Devnet.
+            Constructs a real binary Solana wire transaction invoking <code>ComputeBudget</code> + our custom deployed <code>ValidatorOrderRegistry::RecordProbePulse</code> (<code>CmNC6vKh...Cm6Do</code>) + <code>SPL Memo v2</code> and executes <code>simulateTransaction</code> live on Solana Devnet.
           </p>
           <div class="grid-2" style="gap:10px;">
             <div>
               <label for="sim-cu-limit">SetComputeUnitLimit</label>
-              <input id="sim-cu-limit" type="number" value="25000" min="1000" max="1400000" />
+              <input id="sim-cu-limit" type="number" value="35000" min="5000" max="1400000" />
             </div>
             <div>
               <label for="sim-cu-price">SetComputeUnitPrice (&mu;Lamports/CU)</label>
@@ -636,42 +638,82 @@ const est = await client.estimateWritableLockFees(${JSON.stringify(accts)}, { cu
         }
       }));
       tbody.innerHTML = rowsHtml.join("");
+
+      const stateEl = document.getElementById("live-onchain-state");
+      try {
+        const [psRes, csRes] = await Promise.all([
+          rpcCall("https://api.devnet.solana.com", "getAccountInfo", ["99b3TzB9jBdgdPBKNUdijtWDBER34ZjEynjtZfMngMuf", { encoding: "base64" }]),
+          rpcCall("https://api.devnet.solana.com", "getAccountInfo", ["vjEa18ZeL7D1PNEVo6ya7vwAsrfstfQjR1rdgALRaHe", { encoding: "base64" }]),
+        ]);
+        const b64ToU8 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+        const psU8 = b64ToU8(psRes.value.data[0]);
+        const csU8 = b64ToU8(csRes.value.data[0]);
+        const psDv = new DataView(psU8.buffer);
+        const csDv = new DataView(csU8.buffer);
+        stateEl.textContent = JSON.stringify({
+          SVOR_ProbeState: {
+            account: "99b3TzB9jBdgdPBKNUdijtWDBER34ZjEynjtZfMngMuf",
+            magic: String.fromCharCode(psU8[0], psU8[1], psU8[2], psU8[3]),
+            lastSlot: Number(psDv.getBigUint64(48, true)),
+            pulseCount: psDv.getUint32(56, true),
+            priorityReorderCount: psDv.getUint32(60, true),
+            maxCuPriceMicroLamports: Number(psDv.getBigUint64(72, true)),
+          },
+          SVFC_FeeCheckpointState: {
+            account: "vjEa18ZeL7D1PNEVo6ya7vwAsrfstfQjR1rdgALRaHe",
+            magic: String.fromCharCode(csU8[0], csU8[1], csU8[2], csU8[3]),
+            slot: Number(csDv.getBigUint64(72, true)),
+            p50MicroLamports: Number(csDv.getBigUint64(80, true)),
+            p75MicroLamports: Number(csDv.getBigUint64(88, true)),
+            p90MicroLamports: Number(csDv.getBigUint64(96, true)),
+            spearmanRhoBps: csDv.getInt16(104, true),
+            sampleSize: csDv.getUint16(106, true),
+          },
+        }, null, 2);
+      } catch (err) {
+        stateEl.textContent = `State read error: ${err.message}`;
+      }
     }
 
     function updateRegistryPreview() {
       const price = Number(document.getElementById("sim-cu-price").value) || 25000;
-      const pulseHex = toHex(encodeRecordProbePulse(42, 5, price));
+      const pulseHex = toHex(encodeRecordProbePulse(1, 0, price));
       document.getElementById("registry-hex-preview").textContent =
-        `Program ID : CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do\n` +
-        `Instruction: RecordProbePulse(burst_id=42, send_seq=5, cu_price=${price})\n` +
-        `Wire Bytes : 0x${pulseHex} (19 bytes, zero-heap SBF layout)`;
+        `Program ID : CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do (Live Executable on Devnet)\n` +
+        `ProbeState : 99b3TzB9jBdgdPBKNUdijtWDBER34ZjEynjtZfMngMuf (SVOR 208B Ring Buffer)\n` +
+        `Instruction: RecordProbePulse(burst_id=1, send_seq=0, cu_price=${price})\n` +
+        `Wire Bytes : 0x${pulseHex} (19 bytes, ~1,739 CUs in Devnet SVM)`;
     }
 
     async function runDevnetSimulation() {
       const outEl = document.getElementById("sim-output");
-      outEl.textContent = "Executing live simulateTransaction on https://api.devnet.solana.com ...";
+      outEl.textContent = "Executing live simulateTransaction (ComputeBudget + ValidatorOrderRegistry + Memo v2) on Devnet...";
       try {
-        const cuLimit = Math.min(1400000, Math.max(1000, Number(document.getElementById("sim-cu-limit").value) || 25000));
+        const cuLimit = Math.min(1400000, Math.max(5000, Number(document.getElementById("sim-cu-limit").value) || 35000));
         const cuPrice = Math.max(0, Number(document.getElementById("sim-cu-price").value) || 25000);
         const memo = (document.getElementById("sim-memo").value || "svo:v0.2.0").slice(0, 80);
 
-        const payer = b58decode("96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5");
+        const payer = b58decode("3pcmw8VQooZne1LehScj8FoWjtRF9nJqNfD8h8c5VmmY");
+        const probeState = b58decode("99b3TzB9jBdgdPBKNUdijtWDBER34ZjEynjtZfMngMuf");
         const cbProg = b58decode("ComputeBudget111111111111111111111111111111");
+        const regProg = b58decode("CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do");
         const memoProg = b58decode("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
         const ix1 = encodeSetCuLimit(cuLimit);
         const ix2 = encodeSetCuPrice(cuPrice);
-        const ix3 = new TextEncoder().encode(memo);
+        const ix3 = encodeRecordProbePulse(1, 0, cuPrice);
+        const ix4 = new TextEncoder().encode(memo);
 
         const parts = [
           new Uint8Array([1, ...new Array(64).fill(0)]),
-          new Uint8Array([1, 0, 2, 3]),
-          payer, cbProg, memoProg,
+          new Uint8Array([1, 0, 3, 5]),
+          payer, probeState, cbProg, regProg, memoProg,
           new Uint8Array(32),
-          new Uint8Array([3]),
-          new Uint8Array([1, 0, ix1.length]), ix1,
-          new Uint8Array([1, 0, ix2.length]), ix2,
-          new Uint8Array([2, 1, 0, ix3.length]), ix3,
+          new Uint8Array([4]),
+          new Uint8Array([2, 0, ix1.length]), ix1,
+          new Uint8Array([2, 0, ix2.length]), ix2,
+          new Uint8Array([3, 2, 0, 1, ix3.length]), ix3,
+          new Uint8Array([4, 1, 0, ix4.length]), ix4,
         ];
         const totalLen = parts.reduce((acc, p) => acc + p.length, 0);
         const wire = new Uint8Array(totalLen);

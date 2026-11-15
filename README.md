@@ -90,19 +90,27 @@ const cuPriceIxData = encodeSetComputeUnitPrice(est.recommendations.fast.cuPrice
 | **SPL Memo v2** | `MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr` | Mainnet-Beta & Devnet (`BPFLoader2`) | Deterministic burst sequence tagging & zero-SOL Devnet SVM execution simulation |
 | **Jupiter Aggregator v6** | `JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4` | Mainnet-Beta (`BPFLoaderUpgradeab1e`) | Benchmark high-contention router account lock |
 | **Raydium Liquidity Pool v4** | `675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8` | Mainnet-Beta (`BPFLoader2`) | Benchmark shared-writable AMM pool lock |
-| **ValidatorOrderRegistry** | `CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do` | Custom SBF Program (`programs/validator-order-registry`) | On-chain `RecordProbePulse` (`0x01`, `SVOR` 208B ring buffer) & `PublishFeeCheckpoint` (`0x02`, `SVFC` 112B state) |
+| **ValidatorOrderRegistry** | [`CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do`](https://explorer.solana.com/address/CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do?cluster=devnet) | **Live on Solana Devnet** (`BPFLoaderUpgradeab1e`) | Custom SBFv3 program (`~1,739 CUs`) recording `RecordProbePulse` (`0x01`, `SVOR` 208B ring buffer) & `PublishFeeCheckpoint` (`0x02`, `SVFC` 112B state) |
 
-### Building & Deploying `ValidatorOrderRegistry` (`CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do`)
+### Verified Solana Devnet Accounts & Transactions
 
-GitHub Actions CI compiles `programs/validator-order-registry` via `cargo build-sbf` on every push and uploads `validator_order_registry.so` as a build artifact. To deploy or verify against Solana Devnet (keeping keypairs strictly outside the repository):
+* **Executable Program ID:** [`CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do`](https://explorer.solana.com/address/CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do?cluster=devnet) (`ProgramData` PDA: [`CDvmEJDdAeqicEAGYUXiSjmtFKByfb3AuztqQvfdFNDN`](https://explorer.solana.com/address/CDvmEJDdAeqicEAGYUXiSjmtFKByfb3AuztqQvfdFNDN?cluster=devnet), `21,528` bytes, `SHA256: 3b746ebfeef7db93e9edcea143b5618deb0536321ceca6ecfb6ad1013031f61c`)
+* **Deploy Transaction:** [`2m1bMtcGaeE8AdGZo2qkudBXotumKrbYV93RUiuRbeAiGNugtnTMk17MMCAgkKBmdwrE2pdnSHRieBRBvFpa7EDY`](https://explorer.solana.com/tx/2m1bMtcGaeE8AdGZo2qkudBXotumKrbYV93RUiuRbeAiGNugtnTMk17MMCAgkKBmdwrE2pdnSHRieBRBvFpa7EDY?cluster=devnet)
+* **Live `SVOR` `ProbeState` Account:** [`99b3TzB9jBdgdPBKNUdijtWDBER34ZjEynjtZfMngMuf`](https://explorer.solana.com/address/99b3TzB9jBdgdPBKNUdijtWDBER34ZjEynjtZfMngMuf?cluster=devnet) ([tx `7JfpkSEk...`](https://explorer.solana.com/tx/7JfpkSEksnaU8zj9XxUgAD93S7trRwyucS5ZRwZHQ5U1aBieiENLuYjQM3kba9hrJZDMwkNHBbTAJMdc5imfKHA?cluster=devnet))
+* **Live `SVFC` `FeeCheckpointState` Account:** [`vjEa18ZeL7D1PNEVo6ya7vwAsrfstfQjR1rdgALRaHe`](https://explorer.solana.com/address/vjEa18ZeL7D1PNEVo6ya7vwAsrfstfQjR1rdgALRaHe?cluster=devnet) ([tx `5D2VoDew...`](https://explorer.solana.com/tx/5D2VoDewyzJERCjWez2VDZNGDVhkV3P1Y1mPNuNv5P7UWnuqdip9L33i1d7nTiLfedSNALjMNS4QkFcgMaHb9wfn?cluster=devnet))
+
+### Building & Verifying `ValidatorOrderRegistry`
+
+GitHub Actions CI compiles `programs/validator-order-registry` via `cargo-build-sbf` on every push and uploads `validator_order_registry.so` as a build artifact:
 
 ```bash
-# 1. Run live RPC verification across Mainnet-Beta & Devnet + Devnet SVM probe simulation
+# 1. Run live RPC verification across Mainnet-Beta & Devnet + Devnet SVM simulation of ValidatorOrderRegistry
 python3 -m solana_validator_order.program_verifier
 
-# 2. Deploy compiled validator_order_registry.so to Devnet (requires ~0.5 Devnet SOL from https://faucet.solana.com)
+# 2. Deploy or upgrade validator_order_registry.so on Devnet (keypairs stored strictly outside repo)
 python3 scripts/deploy_devnet_program.py \
   --so-path artifacts/validator_order_registry.so \
+  --seed-state \
   --payer-keypair ~/.config/solana/devnet-deployer.json \
   --program-keypair ~/.config/solana/validator-order-program.json
 ```
