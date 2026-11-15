@@ -288,16 +288,31 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "--accounts",
         "-a",
         nargs="*",
-        default=["675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"],
+        default=None,
         help="Writable Solana account pubkeys locked by your transaction.",
+    )
+    parser.add_argument(
+        "--writable",
+        "-w",
+        action="append",
+        default=None,
+        help="Repeatable writable Solana account pubkey flag (alias for --accounts).",
     )
     parser.add_argument("--cu-limit", type=int, default=200_000, help="Requested Compute Unit limit (default: 200000).")
     parser.add_argument("--rpc-url", type=str, default=DEFAULT_MAINNET_RPC, help="Solana JSON-RPC URL.")
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON.")
     args = parser.parse_args(argv)
 
+    target_accounts: List[str] = []
+    if args.accounts:
+        target_accounts.extend(args.accounts)
+    if args.writable:
+        target_accounts.extend(args.writable)
+    if not target_accounts:
+        target_accounts = ["675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"]
+
     client = SolanaPriorityFeeClient(rpc_url=args.rpc_url)
-    est = client.estimate_writable_lock_fees(args.accounts, cu_limit=args.cu_limit)
+    est = client.estimate_writable_lock_fees(target_accounts, cu_limit=args.cu_limit)
 
     if args.json:
         print(json.dumps(est.to_dict(), indent=2))

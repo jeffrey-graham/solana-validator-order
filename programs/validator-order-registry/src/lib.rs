@@ -23,6 +23,7 @@ use solana_program::{
 declare_id!("CmNC6vKh7Tr99ucPJacvgibwVE4JgUhqunyQ3qeCm6Do");
 
 #[cfg(not(feature = "no-entrypoint"))]
+#[allow(unexpected_cfgs)]
 solana_program::entrypoint!(process_instruction);
 
 pub const PROBE_STATE_MAGIC: &[u8; 4] = b"SVOR";
@@ -61,11 +62,13 @@ pub fn process_instruction(
 
     let mut data = state_info.try_borrow_mut_data()?;
 
+    let signer_bytes = authority_info.key.to_bytes();
+
     match disc {
         IX_RECORD_PROBE_PULSE => {
             let slot = Clock::get().map(|c| c.slot).unwrap_or(0);
             let (pulse_count, reorder_count) =
-                apply_record_probe_pulse(&mut data, authority_info.key.as_ref(), slot, payload)?;
+                apply_record_probe_pulse(&mut data, &signer_bytes, slot, payload)?;
             msg!(
                 "SVOR pulse={} reorders={} slot={}",
                 pulse_count,
@@ -75,7 +78,7 @@ pub fn process_instruction(
             Ok(())
         }
         IX_PUBLISH_FEE_CHECKPOINT => {
-            let slot = apply_publish_fee_checkpoint(&mut data, authority_info.key.as_ref(), payload)?;
+            let slot = apply_publish_fee_checkpoint(&mut data, &signer_bytes, payload)?;
             msg!("SVFC checkpoint updated at slot={}", slot);
             Ok(())
         }

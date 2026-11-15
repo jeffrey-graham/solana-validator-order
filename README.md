@@ -43,7 +43,7 @@ from solana_validator_order import (
 )
 
 client = SolanaPriorityFeeClient("https://solana-rpc.publicnode.com")
-estimate = client.estimate_for_accounts(
+estimate = client.estimate_writable_lock_fees(
     writable_accounts=[
         "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
         "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
@@ -51,11 +51,12 @@ estimate = client.estimate_for_accounts(
     cu_limit=200_000,
 )
 
-print(f"Fast tier (P75 + surge guard): {estimate.tiers['fast'].micro_lamports_per_cu:,} uLamports/CU")
-print(f"Total landed fee @ 200k CU:    {estimate.tiers['fast'].total_fee_lamports:,} lamports")
+fast = estimate.recommendations["fast"]
+print(f"Fast tier (P75 + surge guard): {fast.cu_price_micro_lamports:,} uLamports/CU")
+print(f"Total landed fee @ 200k CU:    {fast.total_fee_lamports:,} lamports")
 
 ix_limit = encode_set_compute_unit_limit(200_000)
-ix_price = encode_set_compute_unit_price(estimate.tiers["fast"].micro_lamports_per_cu)
+ix_price = encode_set_compute_unit_price(fast.cu_price_micro_lamports)
 ```
 
 ### TypeScript / ESM SDK (`@jeffrey-graham/solana-validator-order`)
@@ -70,13 +71,13 @@ import {
 } from "./sdk-ts/src/index.mjs";
 
 const client = new SolanaPriorityFeeClient("https://solana-rpc.publicnode.com");
-const est = await client.estimateForAccounts(
+const est = await client.estimateWritableLockFees(
   ["JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"],
-  200_000,
+  { cuLimit: 200_000 },
 );
 
 const cuLimitIxData = encodeSetComputeUnitLimit(200_000);
-const cuPriceIxData = encodeSetComputeUnitPrice(est.tiers.fast.microLamportsPerCu);
+const cuPriceIxData = encodeSetComputeUnitPrice(est.recommendations.fast.cuPriceMicroLamports);
 ```
 
 ---

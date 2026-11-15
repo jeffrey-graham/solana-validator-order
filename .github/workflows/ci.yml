@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Run zero-dependency ESM SDK test suite
         run: npm --prefix sdk-ts test
 
@@ -56,12 +56,13 @@ jobs:
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
       - name: Build Solana SBF binary (validator_order_registry.so)
         run: |
-          cargo build-sbf --manifest-path programs/validator-order-registry/Cargo.toml
-          ls -lh programs/validator-order-registry/target/deploy/validator_order_registry.so
-          sha256sum programs/validator-order-registry/target/deploy/validator_order_registry.so
+          mkdir -p artifacts/deploy
+          cargo-build-sbf --manifest-path programs/validator-order-registry/Cargo.toml --sbf-out-dir artifacts/deploy
+          ls -lh artifacts/deploy/validator_order_registry.so
+          sha256sum artifacts/deploy/validator_order_registry.so
       - name: Upload compiled SBF binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: validator-order-registry-sbf
-          path: programs/validator-order-registry/target/deploy/validator_order_registry.so
+          path: artifacts/deploy/validator_order_registry.so
           retention-days: 90
